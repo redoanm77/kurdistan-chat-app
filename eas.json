@@ -5,19 +5,28 @@
   "build": {
     "development": {
       "developmentClient": true,
-      "distribution": "internal"
+      "distribution": "internal",
+      "env": {
+        "EAS_NO_VCS": "1"
+      }
     },
     "preview": {
       "credentialsSource": "local",
       "distribution": "internal",
       "android": {
         "buildType": "apk"
+      },
+      "env": {
+        "EAS_NO_VCS": "1"
       }
     },
     "production": {
       "credentialsSource": "local",
       "android": {
         "buildType": "app-bundle"
+      },
+      "env": {
+        "EAS_NO_VCS": "1"
       }
     }
   },
