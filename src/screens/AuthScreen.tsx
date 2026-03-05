@@ -11,7 +11,7 @@ import { GoogleSignin } from '@react-native-google-signin/google-signin';
 import { COLORS, SIZES } from '../constants/theme';
 
 GoogleSignin.configure({
-  webClientId: '814756551942-web.apps.googleusercontent.com',
+  webClientId: '814756551942-hufr4kuerljf88jdq73801p5cfodtrhf.apps.googleusercontent.com',
 });
 
 type Step = 'main' | 'phone' | 'otp';
