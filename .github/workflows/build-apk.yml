@@ -27,14 +27,6 @@ jobs:
       - name: Install dependencies
         run: npm install --legacy-peer-deps
 
-      - name: Install Expo CLI
-        run: npm install -g @expo/cli
-
-      - name: Run Expo Prebuild
-        run: npx expo prebuild --platform android --clean
-        env:
-          EAS_NO_VCS: 1
-
       - name: Make gradlew executable
         run: chmod +x android/gradlew
 
