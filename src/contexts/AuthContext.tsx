@@ -2,7 +2,6 @@ import React, { createContext, useContext, useEffect, useState } from 'react';
 import auth, { FirebaseAuthTypes } from '@react-native-firebase/auth';
 import firestore from '@react-native-firebase/firestore';
 import { UserProfile } from '../types';
-import { COLLECTIONS } from '../lib/firebase';
 
 interface AuthContextType {
   user: FirebaseAuthTypes.User | null;
@@ -31,9 +30,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const fetchProfile = async (uid: string) => {
     try {
-      const doc = await firestore().collection(COLLECTIONS.USERS).doc(uid).get();
+      const doc = await firestore().collection('users').doc(uid).get();
       if (doc.exists) {
-        setUserProfile(doc.data() as UserProfile);
+        const data = doc.data() as UserProfile;
+        setUserProfile({ ...data, uid });
       } else {
         setUserProfile(null);
       }
@@ -54,25 +54,23 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       setUser(firebaseUser);
       if (firebaseUser) {
         await fetchProfile(firebaseUser.uid);
-        // Update online status
-        await firestore().collection(COLLECTIONS.USERS).doc(firebaseUser.uid).update({
+        await firestore().collection('users').doc(firebaseUser.uid).update({
           isOnline: true,
-          lastSeen: Date.now(),
+          lastSeen: firestore.FieldValue.serverTimestamp(),
         }).catch(() => {});
       } else {
         setUserProfile(null);
       }
       setLoading(false);
     });
-
     return unsubscribe;
   }, []);
 
   const signOut = async () => {
     if (user) {
-      await firestore().collection(COLLECTIONS.USERS).doc(user.uid).update({
+      await firestore().collection('users').doc(user.uid).update({
         isOnline: false,
-        lastSeen: Date.now(),
+        lastSeen: firestore.FieldValue.serverTimestamp(),
       }).catch(() => {});
     }
     await auth().signOut();
@@ -80,8 +78,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const profileComplete = !!(
     userProfile &&
-    userProfile.displayName &&
-    userProfile.photoURL &&
+    userProfile.profileComplete === true &&
+    (userProfile.displayName || userProfile.username) &&
+    (userProfile.photoURL || userProfile.avatarUrl) &&
+    userProfile.age &&
     userProfile.age >= 18 &&
     userProfile.gender &&
     userProfile.country &&

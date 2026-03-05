@@ -6,68 +6,38 @@ import {
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import * as ImagePicker from 'expo-image-picker';
-import * as Location from 'expo-location';
 import auth from '@react-native-firebase/auth';
 import firestore from '@react-native-firebase/firestore';
 import storage from '@react-native-firebase/storage';
 import { COLORS, SIZES } from '../constants/theme';
-import { COLLECTIONS } from '../lib/firebase';
 import { useAuth } from '../contexts/AuthContext';
 
-// Kurdish regions and countries data
 const KURDISH_REGIONS = [
-  { label: 'روژئافا — Rojava', value: 'rojava' },
-  { label: 'باشووری كوردستان — South Kurdistan', value: 'south_kurdistan' },
-  { label: 'باكووری كوردستان — North Kurdistan', value: 'north_kurdistan' },
-  { label: 'ڕۆژهەڵاتی كوردستان — East Kurdistan', value: 'east_kurdistan' },
+  { label: 'روژئافا — Rojava', value: 'Rojava' },
+  { label: 'باشووری كوردستان — South Kurdistan', value: 'South Kurdistan' },
+  { label: 'باكووری كوردستان — North Kurdistan', value: 'North Kurdistan' },
+  { label: 'ڕۆژهەڵاتی كوردستان — East Kurdistan', value: 'East Kurdistan' },
 ];
 
 const COUNTRIES = [
   ...KURDISH_REGIONS,
-  { label: 'سوریا — Syria', value: 'syria' },
-  { label: 'عراق — Iraq', value: 'iraq' },
-  { label: 'تركيا — Turkey', value: 'turkey' },
-  { label: 'إيران — Iran', value: 'iran' },
-  { label: 'ألمانيا — Germany', value: 'germany' },
-  { label: 'السويد — Sweden', value: 'sweden' },
-  { label: 'هولندا — Netherlands', value: 'netherlands' },
-  { label: 'النمسا — Austria', value: 'austria' },
-  { label: 'بلجيكا — Belgium', value: 'belgium' },
-  { label: 'فرنسا — France', value: 'france' },
-  { label: 'المملكة المتحدة — UK', value: 'uk' },
-  { label: 'الدنمارك — Denmark', value: 'denmark' },
-  { label: 'النرويج — Norway', value: 'norway' },
-  { label: 'فنلندا — Finland', value: 'finland' },
-  { label: 'سويسرا — Switzerland', value: 'switzerland' },
-  { label: 'كندا — Canada', value: 'canada' },
-  { label: 'أمريكا — USA', value: 'usa' },
-  { label: 'أستراليا — Australia', value: 'australia' },
+  { label: 'سوریا — Syria', value: 'Syria' },
+  { label: 'عراق — Iraq', value: 'Iraq' },
+  { label: 'تركيا — Turkey', value: 'Turkey' },
+  { label: 'إيران — Iran', value: 'Iran' },
+  { label: 'ألمانيا — Germany', value: 'Germany' },
+  { label: 'السويد — Sweden', value: 'Sweden' },
+  { label: 'هولندا — Netherlands', value: 'Netherlands' },
+  { label: 'النمسا — Austria', value: 'Austria' },
+  { label: 'بلجيكا — Belgium', value: 'Belgium' },
+  { label: 'فرنسا — France', value: 'France' },
+  { label: 'المملكة المتحدة — UK', value: 'UK' },
+  { label: 'الدنمارك — Denmark', value: 'Denmark' },
+  { label: 'النرويج — Norway', value: 'Norway' },
+  { label: 'كندا — Canada', value: 'Canada' },
+  { label: 'أمريكا — USA', value: 'USA' },
+  { label: 'أستراليا — Australia', value: 'Australia' },
 ];
-
-const CITIES_BY_COUNTRY: { [key: string]: string[] } = {
-  rojava: ['Qamishli', 'Kobani', 'Afrin', 'Derik', 'Serêkaniyê', 'Tirbespiyê', 'Dirbêsiyê', 'Amûdê', 'Girê Spî'],
-  south_kurdistan: ['Hewlêr / Erbil', 'Silêmanî', 'Duhok', 'Kerkuk', 'Halabja', 'Zakho', 'Akre', 'Ranya'],
-  north_kurdistan: ['Amed / Diyarbakır', 'Mêrdîn', 'Riha / Urfa', 'Wan / Van', 'Cizîr', 'Nusaybin', 'Siirt'],
-  east_kurdistan: ['Mahabad', 'Sine / Sanandaj', 'Kirmaşan', 'Urmiye', 'Bukan', 'Piranshahr'],
-  syria: ['Damascus', 'Aleppo', 'Homs', 'Latakia', 'Deir ez-Zor'],
-  iraq: ['Baghdad', 'Basra', 'Mosul', 'Najaf', 'Karbala'],
-  turkey: ['Istanbul', 'Ankara', 'Izmir', 'Bursa', 'Antalya'],
-  iran: ['Tehran', 'Isfahan', 'Shiraz', 'Tabriz', 'Mashhad'],
-  germany: ['Berlin', 'Hamburg', 'Munich', 'Cologne', 'Frankfurt', 'Stuttgart', 'Düsseldorf'],
-  sweden: ['Stockholm', 'Gothenburg', 'Malmö', 'Uppsala', 'Västerås'],
-  netherlands: ['Amsterdam', 'Rotterdam', 'The Hague', 'Utrecht', 'Eindhoven'],
-  austria: ['Vienna', 'Graz', 'Linz', 'Salzburg', 'Innsbruck'],
-  belgium: ['Brussels', 'Antwerp', 'Ghent', 'Bruges', 'Liège'],
-  france: ['Paris', 'Lyon', 'Marseille', 'Toulouse', 'Nice'],
-  uk: ['London', 'Birmingham', 'Manchester', 'Leeds', 'Glasgow'],
-  denmark: ['Copenhagen', 'Aarhus', 'Odense', 'Aalborg'],
-  norway: ['Oslo', 'Bergen', 'Stavanger', 'Trondheim'],
-  finland: ['Helsinki', 'Espoo', 'Tampere', 'Vantaa'],
-  switzerland: ['Zurich', 'Geneva', 'Basel', 'Bern'],
-  canada: ['Toronto', 'Vancouver', 'Montreal', 'Calgary', 'Ottawa'],
-  usa: ['New York', 'Los Angeles', 'Chicago', 'Houston', 'Phoenix'],
-  australia: ['Sydney', 'Melbourne', 'Brisbane', 'Perth', 'Adelaide'],
-};
 
 const INTERESTS = [
   'Muzik', 'Werzish', 'Geryan', 'Xwarinpêjtin', 'Xwendin',
@@ -78,353 +48,273 @@ const INTERESTS = [
 export default function CompleteProfileScreen() {
   const { user, refreshProfile } = useAuth();
   const [loading, setLoading] = useState(false);
-  const [photoUri, setPhotoUri] = useState<string | null>(null);
-  const [displayName, setDisplayName] = useState(user?.displayName || '');
-  const [bio, setBio] = useState('');
-  const [age, setAge] = useState('');
-  const [gender, setGender] = useState<'male' | 'female' | ''>('');
-  const [country, setCountry] = useState('');
-  const [city, setCity] = useState('');
-  const [livingIn, setLivingIn] = useState('');
-  const [instagram, setInstagram] = useState('');
-  const [selectedInterests, setSelectedInterests] = useState<string[]>([]);
-  const [showCountryPicker, setShowCountryPicker] = useState(false);
-  const [showCityPicker, setShowCityPicker] = useState(false);
-  const [countrySearch, setCountrySearch] = useState('');
-  const [citySearch, setCitySearch] = useState('');
+  const [step, setStep] = useState(1);
+  const [form, setForm] = useState({
+    username: '',
+    bio: '',
+    age: '',
+    gender: '' as 'male' | 'female' | '',
+    country: '',
+    city: '',
+    interests: [] as string[],
+  });
+  const [avatar, setAvatar] = useState<string | null>(null);
+  const [showCountries, setShowCountries] = useState(false);
 
   const pickImage = async () => {
-    const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
-    if (status !== 'granted') {
-      Alert.alert('إذن مطلوب', 'نحتاج إذن الوصول إلى الصور');
-      return;
-    }
     const result = await ImagePicker.launchImageLibraryAsync({
       mediaTypes: ImagePicker.MediaTypeOptions.Images,
       allowsEditing: true,
       aspect: [1, 1],
       quality: 0.8,
     });
-    if (!result.canceled) {
-      setPhotoUri(result.assets[0].uri);
-    }
-  };
-
-  const getLocation = async () => {
-    const { status } = await Location.requestForegroundPermissionsAsync();
-    if (status !== 'granted') {
-      Alert.alert('إذن مطلوب', 'نحتاج إذن الموقع');
-      return;
-    }
-    try {
-      const loc = await Location.getCurrentPositionAsync({});
-      const [address] = await Location.reverseGeocodeAsync({
-        latitude: loc.coords.latitude,
-        longitude: loc.coords.longitude,
-      });
-      if (address) {
-        setLivingIn(`${address.city || address.district || ''}, ${address.country || ''}`);
-      }
-    } catch {
-      Alert.alert('خطأ', 'فشل الحصول على الموقع');
+    if (!result.canceled && result.assets[0]) {
+      setAvatar(result.assets[0].uri);
     }
   };
 
   const toggleInterest = (interest: string) => {
-    setSelectedInterests(prev =>
-      prev.includes(interest) ? prev.filter(i => i !== interest) : [...prev, interest]
-    );
-  };
-
-  const uploadPhoto = async (uri: string): Promise<string> => {
-    const uid = user!.uid;
-    const ref = storage().ref(`avatars/${uid}.jpg`);
-    await ref.putFile(uri);
-    return await ref.getDownloadURL();
+    setForm(prev => ({
+      ...prev,
+      interests: prev.interests.includes(interest)
+        ? prev.interests.filter(i => i !== interest)
+        : [...prev.interests, interest],
+    }));
   };
 
   const handleSubmit = async () => {
-    if (!photoUri) { Alert.alert('مطلوب', 'الصورة الشخصية إلزامية'); return; }
-    if (!displayName.trim()) { Alert.alert('مطلوب', 'الاسم الكامل إلزامي'); return; }
-    const ageNum = parseInt(age);
-    if (!age || isNaN(ageNum) || ageNum < 18) { Alert.alert('خطأ', 'يجب أن يكون عمرك 18 سنة أو أكثر'); return; }
-    if (!gender) { Alert.alert('مطلوب', 'الجنس إلزامي'); return; }
-    if (!country) { Alert.alert('مطلوب', 'الدولة إلزامية'); return; }
-    if (!city) { Alert.alert('مطلوب', 'المدينة إلزامية'); return; }
+    if (!form.username.trim()) return Alert.alert('خطأ', 'أدخل اسم المستخدم');
+    if (!form.age || parseInt(form.age) < 18) return Alert.alert('خطأ', 'يجب أن يكون عمرك 18 سنة أو أكثر');
+    if (!form.gender) return Alert.alert('خطأ', 'اختر الجنس');
+    if (!form.country) return Alert.alert('خطأ', 'اختر البلد');
+    if (!form.city.trim()) return Alert.alert('خطأ', 'أدخل المدينة');
+    if (!avatar) return Alert.alert('خطأ', 'أضف صورة شخصية');
 
+    setLoading(true);
     try {
-      setLoading(true);
-      const photoURL = await uploadPhoto(photoUri);
-      const countryLabel = COUNTRIES.find(c => c.value === country)?.label || country;
+      let photoURL = '';
+      // رفع الصورة
+      const response = await fetch(avatar);
+      const blob = await response.blob();
+      const ext = avatar.split('.').pop() || 'jpg';
+      const storageRef = storage().ref(`avatars/${user!.uid}.${ext}`);
+      await storageRef.put(blob);
+      photoURL = await storageRef.getDownloadURL();
 
-      await firestore().collection(COLLECTIONS.USERS).doc(user!.uid).set({
+      // تحديث الملف الشخصي في Firestore
+      await firestore().collection('users').doc(user!.uid).set({
         uid: user!.uid,
-        displayName: displayName.trim(),
+        username: form.username.trim(),
+        displayName: form.username.trim(),
+        bio: form.bio.trim(),
+        age: parseInt(form.age),
+        gender: form.gender,
+        country: form.country,
+        city: form.city.trim(),
+        interests: form.interests,
         photoURL,
-        bio: bio.trim(),
-        age: ageNum,
-        gender,
-        country: countryLabel,
-        city,
-        livingIn: livingIn.trim(),
-        instagram: instagram.trim(),
-        interests: selectedInterests,
+        avatarUrl: photoURL,
         isOnline: true,
-        lastSeen: Date.now(),
-        createdAt: Date.now(),
         profileComplete: true,
-        role: 'user',
-        isBlocked: false,
-        phoneNumber: user!.phoneNumber || null,
         email: user!.email || null,
-      });
+        phoneNumber: user!.phoneNumber || null,
+        createdAt: firestore.FieldValue.serverTimestamp(),
+        lastSeen: firestore.FieldValue.serverTimestamp(),
+      }, { merge: true });
 
-      await auth().currentUser?.updateProfile({ displayName: displayName.trim(), photoURL });
       await refreshProfile();
-    } catch (error) {
-      Alert.alert('خطأ', 'فشل حفظ البيانات. حاول مرة أخرى.');
-      console.error(error);
+    } catch (error: any) {
+      console.error('Profile error:', error);
+      Alert.alert('خطأ', 'حدث خطأ. حاول مرة أخرى.');
     } finally {
       setLoading(false);
     }
   };
 
-  const filteredCountries = COUNTRIES.filter(c =>
-    c.label.toLowerCase().includes(countrySearch.toLowerCase())
-  );
-  const availableCities = country ? (CITIES_BY_COUNTRY[country] || []) : [];
-  const filteredCities = availableCities.filter(c =>
-    c.toLowerCase().includes(citySearch.toLowerCase())
-  );
-
   return (
-    <LinearGradient colors={['#0a0a1a', '#12122a']} style={styles.container}>
-      <ScrollView contentContainerStyle={styles.scroll} keyboardShouldPersistTaps="handled">
+    <LinearGradient colors={['#0a0a1a', '#1a0a35', '#0a0a1a']} style={styles.container}>
+      <ScrollView contentContainerStyle={styles.scroll}>
         <Text style={styles.title}>أكمل ملفك الشخصي</Text>
-        <Text style={styles.subtitle}>هذه المعلومات ستظهر للأعضاء الآخرين</Text>
+        <Text style={styles.subtitle}>الخطوة {step} من 3</Text>
 
-        {/* Photo */}
-        <TouchableOpacity style={styles.photoContainer} onPress={pickImage}>
-          {photoUri ? (
-            <Image source={{ uri: photoUri }} style={styles.photo} />
-          ) : (
-            <View style={styles.photoPlaceholder}>
-              <Ionicons name="camera" size={36} color={COLORS.primary} />
-              <Text style={styles.photoText}>أضف صورة شخصية *</Text>
-            </View>
+        {/* Progress */}
+        <View style={styles.progress}>
+          {[1, 2, 3].map(s => (
+            <View key={s} style={[styles.progressDot, s <= step && styles.progressDotActive]} />
+          ))}
+        </View>
+
+        <View style={styles.card}>
+          {step === 1 && (
+            <>
+              <Text style={styles.stepTitle}>المعلومات الأساسية</Text>
+              {/* Avatar */}
+              <TouchableOpacity style={styles.avatarPicker} onPress={pickImage}>
+                {avatar ? (
+                  <Image source={{ uri: avatar }} style={styles.avatarImg} />
+                ) : (
+                  <View style={styles.avatarPlaceholder}>
+                    <Ionicons name="camera" size={32} color={COLORS.textMuted} />
+                    <Text style={styles.avatarText}>أضف صورة</Text>
+                  </View>
+                )}
+              </TouchableOpacity>
+              {/* Username */}
+              <Text style={styles.label}>اسم المستخدم *</Text>
+              <TextInput
+                style={styles.input}
+                placeholder="اسمك في التطبيق"
+                placeholderTextColor={COLORS.textMuted}
+                value={form.username}
+                onChangeText={v => setForm(p => ({ ...p, username: v }))}
+              />
+              {/* Bio */}
+              <Text style={styles.label}>نبذة عنك</Text>
+              <TextInput
+                style={[styles.input, styles.textarea]}
+                placeholder="اكتب شيئاً عن نفسك..."
+                placeholderTextColor={COLORS.textMuted}
+                value={form.bio}
+                onChangeText={v => setForm(p => ({ ...p, bio: v }))}
+                multiline
+                numberOfLines={3}
+              />
+              <TouchableOpacity style={styles.nextBtn} onPress={() => {
+                if (!form.username.trim()) return Alert.alert('خطأ', 'أدخل اسم المستخدم');
+                if (!avatar) return Alert.alert('خطأ', 'أضف صورة شخصية');
+                setStep(2);
+              }}>
+                <Text style={styles.nextBtnText}>التالي</Text>
+                <Ionicons name="arrow-forward" size={18} color="#fff" />
+              </TouchableOpacity>
+            </>
           )}
-          <View style={styles.photoEditBadge}>
-            <Ionicons name="pencil" size={14} color="#fff" />
-          </View>
-        </TouchableOpacity>
 
-        {/* Name */}
-        <View style={styles.field}>
-          <Text style={styles.label}>الاسم الكامل *</Text>
-          <TextInput
-            style={styles.input}
-            placeholder="اكتب اسمك الكامل"
-            placeholderTextColor={COLORS.textMuted}
-            value={displayName}
-            onChangeText={setDisplayName}
-          />
-        </View>
-
-        {/* Bio */}
-        <View style={styles.field}>
-          <Text style={styles.label}>نبذة عنك</Text>
-          <TextInput
-            style={[styles.input, styles.textArea]}
-            placeholder="اكتب نبذة قصيرة عنك..."
-            placeholderTextColor={COLORS.textMuted}
-            value={bio}
-            onChangeText={setBio}
-            multiline
-            numberOfLines={3}
-          />
-        </View>
-
-        {/* Age & Gender */}
-        <View style={styles.row}>
-          <View style={[styles.field, { flex: 1, marginRight: SIZES.sm }]}>
-            <Text style={styles.label}>العمر *</Text>
-            <TextInput
-              style={styles.input}
-              placeholder="18+"
-              placeholderTextColor={COLORS.textMuted}
-              value={age}
-              onChangeText={setAge}
-              keyboardType="number-pad"
-              maxLength={3}
-            />
-          </View>
-          <View style={[styles.field, { flex: 1.5 }]}>
-            <Text style={styles.label}>الجنس *</Text>
-            <View style={styles.genderRow}>
-              <TouchableOpacity
-                style={[styles.genderBtn, gender === 'male' && styles.genderBtnActive]}
-                onPress={() => setGender('male')}
-              >
-                <Ionicons name="male" size={18} color={gender === 'male' ? '#fff' : COLORS.textSecondary} />
-                <Text style={[styles.genderText, gender === 'male' && styles.genderTextActive]}>ذكر</Text>
-              </TouchableOpacity>
-              <TouchableOpacity
-                style={[styles.genderBtn, gender === 'female' && styles.genderBtnActiveFemale]}
-                onPress={() => setGender('female')}
-              >
-                <Ionicons name="female" size={18} color={gender === 'female' ? '#fff' : COLORS.textSecondary} />
-                <Text style={[styles.genderText, gender === 'female' && styles.genderTextActive]}>أنثى</Text>
-              </TouchableOpacity>
-            </View>
-          </View>
-        </View>
-
-        {/* Country */}
-        <View style={styles.field}>
-          <Text style={styles.label}>الدولة / المنطقة *</Text>
-          <TouchableOpacity style={styles.selectBtn} onPress={() => setShowCountryPicker(true)}>
-            <Text style={country ? styles.selectText : styles.selectPlaceholder}>
-              {country ? COUNTRIES.find(c => c.value === country)?.label : 'اختر الدولة...'}
-            </Text>
-            <Ionicons name="chevron-down" size={18} color={COLORS.textMuted} />
-          </TouchableOpacity>
-        </View>
-
-        {/* Country Picker Modal */}
-        {showCountryPicker && (
-          <View style={styles.pickerContainer}>
-            <TextInput
-              style={styles.searchInput}
-              placeholder="ابحث..."
-              placeholderTextColor={COLORS.textMuted}
-              value={countrySearch}
-              onChangeText={setCountrySearch}
-              autoFocus
-            />
-            <ScrollView style={styles.pickerList} nestedScrollEnabled>
-              {filteredCountries.map(c => (
+          {step === 2 && (
+            <>
+              <Text style={styles.stepTitle}>المعلومات الشخصية</Text>
+              {/* Age */}
+              <Text style={styles.label}>العمر * (18+)</Text>
+              <TextInput
+                style={styles.input}
+                placeholder="عمرك"
+                placeholderTextColor={COLORS.textMuted}
+                value={form.age}
+                onChangeText={v => setForm(p => ({ ...p, age: v }))}
+                keyboardType="number-pad"
+                maxLength={3}
+              />
+              {/* Gender */}
+              <Text style={styles.label}>الجنس *</Text>
+              <View style={styles.genderRow}>
                 <TouchableOpacity
-                  key={c.value}
-                  style={[styles.pickerItem, country === c.value && styles.pickerItemActive]}
-                  onPress={() => { setCountry(c.value); setCity(''); setShowCountryPicker(false); setCountrySearch(''); }}
+                  style={[styles.genderBtn, form.gender === 'male' && styles.genderBtnActive]}
+                  onPress={() => setForm(p => ({ ...p, gender: 'male' }))}
                 >
-                  <Text style={[styles.pickerItemText, country === c.value && styles.pickerItemTextActive]}>
-                    {c.label}
-                  </Text>
+                  <Ionicons name="male" size={20} color={form.gender === 'male' ? '#fff' : COLORS.textSecondary} />
+                  <Text style={[styles.genderText, form.gender === 'male' && styles.genderTextActive]}>ذكر</Text>
                 </TouchableOpacity>
-              ))}
-            </ScrollView>
-          </View>
-        )}
-
-        {/* City */}
-        <View style={styles.field}>
-          <Text style={styles.label}>المدينة *</Text>
-          <TouchableOpacity
-            style={[styles.selectBtn, !country && styles.selectBtnDisabled]}
-            onPress={() => country && setShowCityPicker(true)}
-          >
-            <Text style={city ? styles.selectText : styles.selectPlaceholder}>
-              {city || (country ? 'اختر المدينة...' : 'اختر الدولة أولاً')}
-            </Text>
-            <Ionicons name="chevron-down" size={18} color={COLORS.textMuted} />
-          </TouchableOpacity>
-        </View>
-
-        {/* City Picker */}
-        {showCityPicker && (
-          <View style={styles.pickerContainer}>
-            <TextInput
-              style={styles.searchInput}
-              placeholder="ابحث عن مدينة..."
-              placeholderTextColor={COLORS.textMuted}
-              value={citySearch}
-              onChangeText={setCitySearch}
-              autoFocus
-            />
-            <ScrollView style={styles.pickerList} nestedScrollEnabled>
-              {filteredCities.map(c => (
                 <TouchableOpacity
-                  key={c}
-                  style={[styles.pickerItem, city === c && styles.pickerItemActive]}
-                  onPress={() => { setCity(c); setShowCityPicker(false); setCitySearch(''); }}
+                  style={[styles.genderBtn, form.gender === 'female' && styles.genderBtnActive]}
+                  onPress={() => setForm(p => ({ ...p, gender: 'female' }))}
                 >
-                  <Text style={[styles.pickerItemText, city === c && styles.pickerItemTextActive]}>{c}</Text>
+                  <Ionicons name="female" size={20} color={form.gender === 'female' ? '#fff' : COLORS.textSecondary} />
+                  <Text style={[styles.genderText, form.gender === 'female' && styles.genderTextActive]}>أنثى</Text>
                 </TouchableOpacity>
-              ))}
-            </ScrollView>
-          </View>
-        )}
-
-        {/* Living In */}
-        <View style={styles.field}>
-          <Text style={styles.label}>أين تعيش الآن؟</Text>
-          <View style={styles.inputRow}>
-            <TextInput
-              style={[styles.input, { flex: 1 }]}
-              placeholder="المدينة، الدولة"
-              placeholderTextColor={COLORS.textMuted}
-              value={livingIn}
-              onChangeText={setLivingIn}
-            />
-            <TouchableOpacity style={styles.gpsBtn} onPress={getLocation}>
-              <Ionicons name="location" size={20} color={COLORS.primary} />
-            </TouchableOpacity>
-          </View>
-          <TouchableOpacity style={styles.gpsFullBtn} onPress={getLocation}>
-            <Ionicons name="navigate" size={16} color={COLORS.primary} />
-            <Text style={styles.gpsFullText}>استخدم موقعي الحالي</Text>
-          </TouchableOpacity>
-        </View>
-
-        {/* Instagram */}
-        <View style={styles.field}>
-          <Text style={styles.label}>Instagram</Text>
-          <View style={styles.inputWithIcon}>
-            <Ionicons name="logo-instagram" size={20} color={COLORS.textMuted} style={styles.inputIcon} />
-            <TextInput
-              style={[styles.input, styles.inputWithIconField]}
-              placeholder="اسم المستخدم"
-              placeholderTextColor={COLORS.textMuted}
-              value={instagram}
-              onChangeText={setInstagram}
-              autoCapitalize="none"
-            />
-          </View>
-        </View>
-
-        {/* Interests */}
-        <View style={styles.field}>
-          <Text style={styles.label}>الاهتمامات</Text>
-          <View style={styles.interestsGrid}>
-            {INTERESTS.map(interest => (
+              </View>
+              {/* Country */}
+              <Text style={styles.label}>البلد *</Text>
               <TouchableOpacity
-                key={interest}
-                style={[styles.interestChip, selectedInterests.includes(interest) && styles.interestChipActive]}
-                onPress={() => toggleInterest(interest)}
+                style={styles.input}
+                onPress={() => setShowCountries(!showCountries)}
               >
-                <Text style={[styles.interestText, selectedInterests.includes(interest) && styles.interestTextActive]}>
-                  {interest}
+                <Text style={{ color: form.country ? COLORS.textPrimary : COLORS.textMuted }}>
+                  {form.country || 'اختر البلد'}
                 </Text>
               </TouchableOpacity>
-            ))}
-          </View>
-        </View>
-
-        {/* Submit */}
-        <TouchableOpacity
-          style={[styles.submitBtn, loading && styles.submitBtnDisabled]}
-          onPress={handleSubmit}
-          disabled={loading}
-        >
-          {loading ? (
-            <ActivityIndicator color="#fff" />
-          ) : (
-            <Text style={styles.submitBtnText}>حفظ وإكمال الملف الشخصي</Text>
+              {showCountries && (
+                <View style={styles.dropdown}>
+                  <ScrollView style={{ maxHeight: 200 }}>
+                    {COUNTRIES.map(c => (
+                      <TouchableOpacity
+                        key={c.value}
+                        style={styles.dropdownItem}
+                        onPress={() => {
+                          setForm(p => ({ ...p, country: c.value }));
+                          setShowCountries(false);
+                        }}
+                      >
+                        <Text style={styles.dropdownText}>{c.label}</Text>
+                      </TouchableOpacity>
+                    ))}
+                  </ScrollView>
+                </View>
+              )}
+              {/* City */}
+              <Text style={styles.label}>المدينة *</Text>
+              <TextInput
+                style={styles.input}
+                placeholder="مدينتك"
+                placeholderTextColor={COLORS.textMuted}
+                value={form.city}
+                onChangeText={v => setForm(p => ({ ...p, city: v }))}
+              />
+              <View style={styles.btnRow}>
+                <TouchableOpacity style={styles.backBtn} onPress={() => setStep(1)}>
+                  <Ionicons name="arrow-back" size={18} color={COLORS.textSecondary} />
+                  <Text style={styles.backBtnText}>رجوع</Text>
+                </TouchableOpacity>
+                <TouchableOpacity style={styles.nextBtn} onPress={() => {
+                  if (!form.age || parseInt(form.age) < 18) return Alert.alert('خطأ', 'يجب أن يكون عمرك 18+');
+                  if (!form.gender) return Alert.alert('خطأ', 'اختر الجنس');
+                  if (!form.country) return Alert.alert('خطأ', 'اختر البلد');
+                  if (!form.city.trim()) return Alert.alert('خطأ', 'أدخل المدينة');
+                  setStep(3);
+                }}>
+                  <Text style={styles.nextBtnText}>التالي</Text>
+                  <Ionicons name="arrow-forward" size={18} color="#fff" />
+                </TouchableOpacity>
+              </View>
+            </>
           )}
-        </TouchableOpacity>
 
-        <View style={{ height: 40 }} />
+          {step === 3 && (
+            <>
+              <Text style={styles.stepTitle}>الاهتمامات</Text>
+              <Text style={styles.stepSubtitle}>اختر ما يهمك (اختياري)</Text>
+              <View style={styles.interestsGrid}>
+                {INTERESTS.map(interest => (
+                  <TouchableOpacity
+                    key={interest}
+                    style={[styles.chip, form.interests.includes(interest) && styles.chipActive]}
+                    onPress={() => toggleInterest(interest)}
+                  >
+                    <Text style={[styles.chipText, form.interests.includes(interest) && styles.chipTextActive]}>
+                      {interest}
+                    </Text>
+                  </TouchableOpacity>
+                ))}
+              </View>
+              <View style={styles.btnRow}>
+                <TouchableOpacity style={styles.backBtn} onPress={() => setStep(2)}>
+                  <Ionicons name="arrow-back" size={18} color={COLORS.textSecondary} />
+                  <Text style={styles.backBtnText}>رجوع</Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={[styles.submitBtn, loading && styles.btnDisabled]}
+                  onPress={handleSubmit}
+                  disabled={loading}
+                >
+                  {loading ? (
+                    <ActivityIndicator color="#fff" />
+                  ) : (
+                    <Text style={styles.nextBtnText}>إنهاء</Text>
+                  )}
+                </TouchableOpacity>
+              </View>
+            </>
+          )}
+        </View>
       </ScrollView>
     </LinearGradient>
   );
@@ -432,101 +322,74 @@ export default function CompleteProfileScreen() {
 
 const styles = StyleSheet.create({
   container: { flex: 1 },
-  scroll: { padding: SIZES.lg },
-  title: { fontSize: SIZES.fontXxl, fontWeight: 'bold', color: COLORS.textPrimary, textAlign: 'center', marginTop: SIZES.xl },
-  subtitle: { fontSize: SIZES.fontSm, color: COLORS.textSecondary, textAlign: 'center', marginBottom: SIZES.xl },
-
-  photoContainer: { alignSelf: 'center', marginBottom: SIZES.xl, position: 'relative' },
-  photo: { width: 110, height: 110, borderRadius: 55, borderWidth: 3, borderColor: COLORS.primary },
-  photoPlaceholder: {
-    width: 110, height: 110, borderRadius: 55,
-    backgroundColor: COLORS.bgCard, borderWidth: 2, borderColor: COLORS.primary,
-    borderStyle: 'dashed', justifyContent: 'center', alignItems: 'center',
+  scroll: { flexGrow: 1, padding: SIZES.lg, paddingTop: 60 },
+  title: { fontSize: SIZES.fontXxl, fontWeight: 'bold', color: COLORS.textPrimary, textAlign: 'center' },
+  subtitle: { fontSize: SIZES.fontSm, color: COLORS.textSecondary, textAlign: 'center', marginTop: 4 },
+  progress: { flexDirection: 'row', justifyContent: 'center', gap: 8, marginVertical: SIZES.lg },
+  progressDot: { width: 10, height: 10, borderRadius: 5, backgroundColor: COLORS.border },
+  progressDotActive: { backgroundColor: COLORS.primary },
+  card: {
+    backgroundColor: COLORS.bgCard, borderRadius: SIZES.radiusXl,
+    padding: SIZES.xl, borderWidth: 1, borderColor: COLORS.border,
   },
-  photoText: { fontSize: SIZES.fontXs, color: COLORS.primary, marginTop: 4, textAlign: 'center' },
-  photoEditBadge: {
-    position: 'absolute', bottom: 4, right: 4,
-    width: 28, height: 28, borderRadius: 14,
-    backgroundColor: COLORS.primary, justifyContent: 'center', alignItems: 'center',
+  stepTitle: { fontSize: SIZES.fontLg, fontWeight: 'bold', color: COLORS.textPrimary, marginBottom: 4 },
+  stepSubtitle: { fontSize: SIZES.fontSm, color: COLORS.textSecondary, marginBottom: SIZES.md },
+  avatarPicker: { alignSelf: 'center', marginBottom: SIZES.lg },
+  avatarImg: { width: 100, height: 100, borderRadius: 50, borderWidth: 3, borderColor: COLORS.primary },
+  avatarPlaceholder: {
+    width: 100, height: 100, borderRadius: 50,
+    backgroundColor: COLORS.bgInput, borderWidth: 2, borderColor: COLORS.border,
+    justifyContent: 'center', alignItems: 'center',
   },
-
-  field: { marginBottom: SIZES.md },
-  label: { fontSize: SIZES.fontSm, color: COLORS.textSecondary, marginBottom: SIZES.xs, fontWeight: '500' },
+  avatarText: { color: COLORS.textMuted, fontSize: SIZES.fontXs, marginTop: 4 },
+  label: { fontSize: SIZES.fontSm, color: COLORS.textSecondary, marginBottom: 6, marginTop: SIZES.sm },
   input: {
     backgroundColor: COLORS.bgInput, borderRadius: SIZES.radiusMd,
-    paddingHorizontal: SIZES.md, paddingVertical: 12,
+    paddingHorizontal: SIZES.md, paddingVertical: SIZES.sm,
     color: COLORS.textPrimary, fontSize: SIZES.fontMd,
-    borderWidth: 1, borderColor: COLORS.border,
+    borderWidth: 1, borderColor: COLORS.border, marginBottom: 4,
+    justifyContent: 'center',
   },
-  textArea: { height: 80, textAlignVertical: 'top' },
-
-  row: { flexDirection: 'row', marginBottom: 0 },
-  genderRow: { flexDirection: 'row', gap: SIZES.xs },
+  textarea: { height: 80, textAlignVertical: 'top', paddingTop: SIZES.sm },
+  genderRow: { flexDirection: 'row', gap: SIZES.sm, marginBottom: 4 },
   genderBtn: {
     flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center',
-    gap: 6, paddingVertical: 12, borderRadius: SIZES.radiusMd,
+    gap: 6, paddingVertical: SIZES.sm, borderRadius: SIZES.radiusMd,
     backgroundColor: COLORS.bgInput, borderWidth: 1, borderColor: COLORS.border,
   },
-  genderBtnActive: { backgroundColor: '#3b82f6', borderColor: '#3b82f6' },
-  genderBtnActiveFemale: { backgroundColor: '#ec4899', borderColor: '#ec4899' },
-  genderText: { color: COLORS.textSecondary, fontSize: SIZES.fontSm, fontWeight: '500' },
-  genderTextActive: { color: '#fff' },
-
-  selectBtn: {
-    flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
+  genderBtnActive: { backgroundColor: COLORS.primary, borderColor: COLORS.primary },
+  genderText: { color: COLORS.textSecondary, fontSize: SIZES.fontSm },
+  genderTextActive: { color: '#fff', fontWeight: '600' },
+  dropdown: {
     backgroundColor: COLORS.bgInput, borderRadius: SIZES.radiusMd,
-    paddingHorizontal: SIZES.md, paddingVertical: 12,
-    borderWidth: 1, borderColor: COLORS.border,
+    borderWidth: 1, borderColor: COLORS.border, marginBottom: 4,
   },
-  selectBtnDisabled: { opacity: 0.5 },
-  selectText: { color: COLORS.textPrimary, fontSize: SIZES.fontMd },
-  selectPlaceholder: { color: COLORS.textMuted, fontSize: SIZES.fontMd },
-
-  pickerContainer: {
-    backgroundColor: COLORS.bgCard, borderRadius: SIZES.radiusMd,
-    borderWidth: 1, borderColor: COLORS.border, marginBottom: SIZES.md, overflow: 'hidden',
-  },
-  searchInput: {
-    backgroundColor: COLORS.bgInput, paddingHorizontal: SIZES.md, paddingVertical: 10,
-    color: COLORS.textPrimary, fontSize: SIZES.fontMd, borderBottomWidth: 1, borderBottomColor: COLORS.border,
-  },
-  pickerList: { maxHeight: 200 },
-  pickerItem: { paddingHorizontal: SIZES.md, paddingVertical: 12, borderBottomWidth: 1, borderBottomColor: COLORS.border },
-  pickerItemActive: { backgroundColor: COLORS.primary + '30' },
-  pickerItemText: { color: COLORS.textPrimary, fontSize: SIZES.fontSm },
-  pickerItemTextActive: { color: COLORS.primary, fontWeight: '600' },
-
-  inputRow: { flexDirection: 'row', gap: SIZES.xs },
-  gpsBtn: {
-    backgroundColor: COLORS.bgInput, borderRadius: SIZES.radiusMd,
-    paddingHorizontal: SIZES.md, justifyContent: 'center',
-    borderWidth: 1, borderColor: COLORS.border,
-  },
-  gpsFullBtn: {
-    flexDirection: 'row', alignItems: 'center', gap: SIZES.xs,
-    justifyContent: 'center', paddingVertical: SIZES.sm,
-    backgroundColor: COLORS.primary + '20', borderRadius: SIZES.radiusMd, marginTop: SIZES.xs,
-  },
-  gpsFullText: { color: COLORS.primary, fontSize: SIZES.fontSm },
-
-  inputWithIcon: { flexDirection: 'row', alignItems: 'center' },
-  inputIcon: { position: 'absolute', left: SIZES.md, zIndex: 1 },
-  inputWithIconField: { flex: 1, paddingLeft: 44 },
-
-  interestsGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: SIZES.xs },
-  interestChip: {
+  dropdownItem: { paddingHorizontal: SIZES.md, paddingVertical: SIZES.sm, borderBottomWidth: 1, borderBottomColor: COLORS.border },
+  dropdownText: { color: COLORS.textPrimary, fontSize: SIZES.fontSm },
+  interestsGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginBottom: SIZES.lg },
+  chip: {
     paddingHorizontal: SIZES.md, paddingVertical: SIZES.xs,
     borderRadius: SIZES.radiusFull, backgroundColor: COLORS.bgInput,
     borderWidth: 1, borderColor: COLORS.border,
   },
-  interestChipActive: { backgroundColor: COLORS.primary, borderColor: COLORS.primary },
-  interestText: { color: COLORS.textSecondary, fontSize: SIZES.fontSm },
-  interestTextActive: { color: '#fff', fontWeight: '500' },
-
-  submitBtn: {
-    backgroundColor: COLORS.primary, borderRadius: SIZES.radiusMd,
-    paddingVertical: SIZES.md, alignItems: 'center', marginTop: SIZES.lg,
+  chipActive: { backgroundColor: COLORS.primary, borderColor: COLORS.primary },
+  chipText: { color: COLORS.textSecondary, fontSize: SIZES.fontSm },
+  chipTextActive: { color: '#fff', fontWeight: '600' },
+  btnRow: { flexDirection: 'row', gap: SIZES.sm, marginTop: SIZES.md },
+  nextBtn: {
+    flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center',
+    gap: 6, backgroundColor: COLORS.primary, borderRadius: SIZES.radiusMd, paddingVertical: SIZES.md,
   },
-  submitBtnDisabled: { opacity: 0.6 },
-  submitBtnText: { color: '#fff', fontSize: SIZES.fontMd, fontWeight: '700' },
+  nextBtnText: { color: '#fff', fontSize: SIZES.fontMd, fontWeight: '600' },
+  backBtn: {
+    flexDirection: 'row', alignItems: 'center', gap: 4,
+    paddingVertical: SIZES.md, paddingHorizontal: SIZES.md,
+    borderRadius: SIZES.radiusMd, borderWidth: 1, borderColor: COLORS.border,
+  },
+  backBtnText: { color: COLORS.textSecondary, fontSize: SIZES.fontSm },
+  submitBtn: {
+    flex: 1, backgroundColor: COLORS.success, borderRadius: SIZES.radiusMd,
+    paddingVertical: SIZES.md, alignItems: 'center',
+  },
+  btnDisabled: { opacity: 0.6 },
 });

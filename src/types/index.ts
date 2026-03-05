@@ -1,56 +1,105 @@
 export interface UserProfile {
   uid: string;
-  displayName: string;
-  photoURL: string | null;
+  displayName?: string;
+  username?: string;
+  photoURL?: string | null;
+  avatarUrl?: string | null;
   bio?: string;
-  age: number;
-  gender: 'male' | 'female';
-  country: string;
-  city: string;
+  age?: number;
+  gender?: 'male' | 'female' | 'other';
+  country?: string;
+  city?: string;
   livingIn?: string;
   instagram?: string;
   interests?: string[];
-  isOnline: boolean;
-  lastSeen: number;
-  createdAt: number;
+  isOnline?: boolean;
+  lastSeen?: any;
+  createdAt?: any;
   fcmToken?: string;
   role?: 'admin' | 'user';
   isBlocked?: boolean;
-  profileComplete: boolean;
+  isBanned?: boolean;
+  isAdmin?: boolean;
+  isOwner?: boolean;
+  isVerified?: boolean;
+  profileComplete?: boolean;
   phoneNumber?: string;
   email?: string;
+  emailVerified?: boolean;
+  latitude?: number;
+  longitude?: number;
 }
 
-export interface Message {
+export interface PublicMessage {
   id: string;
   senderId: string;
-  receiverId: string;
-  text?: string;
-  imageUrl?: string;
-  audioUrl?: string;
-  type: 'text' | 'image' | 'audio';
-  timestamp: number;
-  read: boolean;
-  chatId: string;
+  senderName: string;
+  senderAvatar?: string | null;
+  senderIsOwner?: boolean;
+  content?: string;
+  mediaUrl?: string;
+  mediaType?: 'image' | 'video' | 'audio';
+  createdAt: any;
+  replyTo?: {
+    id: string;
+    senderName: string;
+    content?: string;
+    mediaUrl?: string;
+  };
+  reactions?: Record<string, string>;
 }
 
-export interface Chat {
+export interface PrivateMessage {
+  id: string;
+  senderId: string;
+  content?: string;
+  mediaUrl?: string;
+  mediaType?: 'image' | 'video' | 'audio';
+  createdAt: any;
+  read?: boolean;
+  reactions?: Record<string, string>;
+  replyTo?: {
+    id: string;
+    senderName: string;
+    content?: string;
+    mediaUrl?: string;
+  };
+  isDeleted?: boolean;
+}
+
+export interface Conversation {
   id: string;
   participants: string[];
   lastMessage?: string;
-  lastMessageTime?: number;
-  unreadCount?: { [uid: string]: number };
+  lastMessageAt?: any;
+  unreadCounts?: Record<string, number>;
+  otherUser?: UserProfile;
 }
 
 export interface Story {
   id: string;
   userId: string;
-  mediaUrl: string;
-  mediaType: 'image' | 'video';
+  userName?: string;
+  userAvatar?: string;
+  imageUrl?: string;
+  mediaUrl?: string;
   caption?: string;
-  createdAt: number;
-  expiresAt: number;
-  views: string[];
+  createdAt: any;
+  expiresAt?: any;
+  views?: string[];
+  friendsOnly?: boolean;
+}
+
+export interface AppNotification {
+  id: string;
+  recipientUid: string;
+  senderUid?: string;
+  type: string;
+  title?: string;
+  body?: string;
+  isRead?: boolean;
+  read?: boolean;
+  createdAt: any;
 }
 
 export interface FriendRequest {
@@ -58,24 +107,26 @@ export interface FriendRequest {
   fromUid: string;
   toUid: string;
   status: 'pending' | 'accepted' | 'rejected';
-  createdAt: number;
+  createdAt: any;
 }
 
 export type RootStackParamList = {
   Auth: undefined;
   CompleteProfile: undefined;
   Main: undefined;
-  Chat: { userId: string; userName: string; userPhoto: string };
+  Chat: { conversationId: string; otherUserId: string; userName: string; userPhoto: string };
   UserProfile: { userId: string };
-  StoryViewer: { stories: Story[]; initialIndex: number };
-  Settings: undefined;
+  PublicChatScreen: undefined;
   EditProfile: undefined;
+  Settings: undefined;
+  MessagesScreen: undefined;
+  StoriesScreen: undefined;
 };
 
 export type MainTabParamList = {
   Home: undefined;
-  Explore: undefined;
-  Stories: undefined;
+  PublicChat: undefined;
+  Messages: undefined;
   Notifications: undefined;
   Profile: undefined;
 };
