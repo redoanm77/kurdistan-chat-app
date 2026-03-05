@@ -16,6 +16,7 @@
       "android": {
         "buildType": "apk"
       },
+      "channel": "preview",
       "env": {
         "EAS_NO_VCS": "1"
       }
@@ -29,6 +30,9 @@
         "EAS_NO_VCS": "1"
       }
     }
+  },
+  "update": {
+    "channel": "preview"
   },
   "submit": {
     "production": {}
