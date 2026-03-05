@@ -8,12 +8,14 @@
       "distribution": "internal"
     },
     "preview": {
+      "credentialsSource": "local",
       "distribution": "internal",
       "android": {
         "buildType": "apk"
       }
     },
     "production": {
+      "credentialsSource": "local",
       "android": {
         "buildType": "app-bundle"
       }
