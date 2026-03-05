@@ -5,9 +5,9 @@ on:
   workflow_dispatch:
     inputs:
       build_apk:
-        description: Build new APK (takes 20 min)
+        description: 'Build new APK (takes 20 min)'
         required: false
-        default: "false"
+        default: 'false'
         type: boolean
 jobs:
   ota-update:
@@ -19,7 +19,7 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: "18"
+          node-version: '18'
       - name: Install dependencies
         run: npm install --legacy-peer-deps
       - name: Install EAS CLI
@@ -31,20 +31,20 @@ jobs:
   build:
     name: Build APK (Full Build)
     runs-on: ubuntu-latest
-    if: github.event.inputs.build_apk == "true" || contains(github.event.head_commit.message, "[build-apk]")
+    if: ${{ github.event.inputs.build_apk == 'true' || contains(github.event.head_commit.message, '[build-apk]') }}
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: "18"
-          cache: npm
+          node-version: '18'
+          cache: 'npm'
       - name: Setup Java 17
         uses: actions/setup-java@v4
         with:
-          distribution: temurin
-          java-version: "17"
+          distribution: 'temurin'
+          java-version: '17'
       - name: Install dependencies
         run: npm install --legacy-peer-deps
       - name: Make gradlew executable
