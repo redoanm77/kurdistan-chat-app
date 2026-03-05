@@ -1,0 +1,288 @@
+import React, { useState } from 'react';
+import {
+  View, Text, StyleSheet, TouchableOpacity, TextInput,
+  KeyboardAvoidingView, Platform, ScrollView, ActivityIndicator,
+  Alert, Image
+} from 'react-native';
+import { LinearGradient } from 'expo-linear-gradient';
+import { Ionicons } from '@expo/vector-icons';
+import auth from '@react-native-firebase/auth';
+import { GoogleSignin } from '@react-native-google-signin/google-signin';
+import { COLORS, SIZES } from '../constants/theme';
+
+GoogleSignin.configure({
+  webClientId: '814756551942-web.apps.googleusercontent.com',
+});
+
+type Step = 'main' | 'phone' | 'otp';
+
+export default function AuthScreen() {
+  const [step, setStep] = useState<Step>('main');
+  const [phone, setPhone] = useState('');
+  const [otp, setOtp] = useState('');
+  const [confirm, setConfirm] = useState<any>(null);
+  const [loading, setLoading] = useState(false);
+
+  const handleGoogleSignIn = async () => {
+    try {
+      setLoading(true);
+      await GoogleSignin.hasPlayServices({ showPlayServicesUpdateDialog: true });
+      const { data } = await GoogleSignin.signIn();
+      const googleCredential = auth.GoogleAuthProvider.credential(data!.idToken);
+      await auth().signInWithCredential(googleCredential);
+    } catch (error: any) {
+      Alert.alert('خطأ', 'فشل تسجيل الدخول بـ Google. حاول مرة أخرى.');
+      console.error(error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handlePhoneSubmit = async () => {
+    if (!phone || phone.length < 8) {
+      Alert.alert('خطأ', 'أدخل رقم هاتف صحيح مع رمز الدولة (مثال: +9647xxxxxxxx)');
+      return;
+    }
+    try {
+      setLoading(true);
+      const confirmation = await auth().signInWithPhoneNumber(phone);
+      setConfirm(confirmation);
+      setStep('otp');
+    } catch (error: any) {
+      Alert.alert('خطأ', 'فشل إرسال رمز التحقق. تأكد من رقم الهاتف.');
+      console.error(error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleOtpConfirm = async () => {
+    if (!otp || otp.length !== 6) {
+      Alert.alert('خطأ', 'أدخل رمز التحقق المكون من 6 أرقام');
+      return;
+    }
+    try {
+      setLoading(true);
+      await confirm.confirm(otp);
+    } catch (error: any) {
+      Alert.alert('خطأ', 'رمز التحقق غير صحيح. حاول مرة أخرى.');
+      console.error(error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <LinearGradient colors={['#0a0a1a', '#12122a', '#0a0a1a']} style={styles.container}>
+      <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={styles.flex}>
+        <ScrollView contentContainerStyle={styles.scroll} keyboardShouldPersistTaps="handled">
+
+          {/* Logo */}
+          <View style={styles.logoContainer}>
+            <View style={styles.logoCircle}>
+              <Text style={styles.logoText}>K</Text>
+            </View>
+            <Text style={styles.appName}>Kurdistan Chat</Text>
+            <Text style={styles.appSubtitle}>تواصل مع الأعضاء من حولك</Text>
+          </View>
+
+          {/* Main Step */}
+          {step === 'main' && (
+            <View style={styles.card}>
+              <Text style={styles.cardTitle}>سجّل دخولك</Text>
+
+              {/* Google Button */}
+              <TouchableOpacity style={styles.googleBtn} onPress={handleGoogleSignIn} disabled={loading}>
+                <View style={styles.btnContent}>
+                  <Ionicons name="logo-google" size={22} color="#fff" />
+                  <Text style={styles.googleBtnText}>متابعة بـ Google</Text>
+                </View>
+              </TouchableOpacity>
+
+              <View style={styles.divider}>
+                <View style={styles.dividerLine} />
+                <Text style={styles.dividerText}>أو</Text>
+                <View style={styles.dividerLine} />
+              </View>
+
+              {/* Phone Button */}
+              <TouchableOpacity style={styles.phoneBtn} onPress={() => setStep('phone')} disabled={loading}>
+                <View style={styles.btnContent}>
+                  <Ionicons name="phone-portrait-outline" size={22} color={COLORS.primary} />
+                  <Text style={styles.phoneBtnText}>متابعة برقم الهاتف</Text>
+                </View>
+              </TouchableOpacity>
+
+              <Text style={styles.termsText}>
+                بالمتابعة، أنت توافق على{' '}
+                <Text style={styles.termsLink}>شروط الاستخدام</Text>
+                {' '}و{' '}
+                <Text style={styles.termsLink}>سياسة الخصوصية</Text>
+              </Text>
+            </View>
+          )}
+
+          {/* Phone Step */}
+          {step === 'phone' && (
+            <View style={styles.card}>
+              <TouchableOpacity style={styles.backBtn} onPress={() => setStep('main')}>
+                <Ionicons name="arrow-back" size={20} color={COLORS.textSecondary} />
+                <Text style={styles.backText}>رجوع</Text>
+              </TouchableOpacity>
+
+              <Text style={styles.cardTitle}>رقم الهاتف</Text>
+              <Text style={styles.cardSubtitle}>سنرسل لك رمز تحقق</Text>
+
+              <TextInput
+                style={styles.input}
+                placeholder="+9647xxxxxxxx"
+                placeholderTextColor={COLORS.textMuted}
+                value={phone}
+                onChangeText={setPhone}
+                keyboardType="phone-pad"
+                textAlign="left"
+                autoFocus
+              />
+
+              <TouchableOpacity
+                style={[styles.submitBtn, loading && styles.submitBtnDisabled]}
+                onPress={handlePhoneSubmit}
+                disabled={loading}
+              >
+                {loading ? (
+                  <ActivityIndicator color="#fff" />
+                ) : (
+                  <Text style={styles.submitBtnText}>إرسال الرمز</Text>
+                )}
+              </TouchableOpacity>
+            </View>
+          )}
+
+          {/* OTP Step */}
+          {step === 'otp' && (
+            <View style={styles.card}>
+              <TouchableOpacity style={styles.backBtn} onPress={() => setStep('phone')}>
+                <Ionicons name="arrow-back" size={20} color={COLORS.textSecondary} />
+                <Text style={styles.backText}>رجوع</Text>
+              </TouchableOpacity>
+
+              <Text style={styles.cardTitle}>رمز التحقق</Text>
+              <Text style={styles.cardSubtitle}>أدخل الرمز المرسل إلى {phone}</Text>
+
+              <TextInput
+                style={[styles.input, styles.otpInput]}
+                placeholder="000000"
+                placeholderTextColor={COLORS.textMuted}
+                value={otp}
+                onChangeText={setOtp}
+                keyboardType="number-pad"
+                maxLength={6}
+                textAlign="center"
+                autoFocus
+              />
+
+              <TouchableOpacity
+                style={[styles.submitBtn, loading && styles.submitBtnDisabled]}
+                onPress={handleOtpConfirm}
+                disabled={loading}
+              >
+                {loading ? (
+                  <ActivityIndicator color="#fff" />
+                ) : (
+                  <Text style={styles.submitBtnText}>تأكيد الرمز</Text>
+                )}
+              </TouchableOpacity>
+
+              <TouchableOpacity onPress={() => setStep('phone')} style={styles.resendBtn}>
+                <Text style={styles.resendText}>إعادة إرسال الرمز</Text>
+              </TouchableOpacity>
+            </View>
+          )}
+
+        </ScrollView>
+      </KeyboardAvoidingView>
+    </LinearGradient>
+  );
+}
+
+const styles = StyleSheet.create({
+  container: { flex: 1 },
+  flex: { flex: 1 },
+  scroll: { flexGrow: 1, justifyContent: 'center', padding: SIZES.lg },
+
+  logoContainer: { alignItems: 'center', marginBottom: SIZES.xxl },
+  logoCircle: {
+    width: 90, height: 90, borderRadius: 45,
+    backgroundColor: COLORS.primary,
+    justifyContent: 'center', alignItems: 'center',
+    marginBottom: SIZES.md,
+    shadowColor: COLORS.primary, shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.5, shadowRadius: 16, elevation: 12,
+  },
+  logoText: { fontSize: 42, fontWeight: 'bold', color: '#fff' },
+  appName: { fontSize: SIZES.fontXxl, fontWeight: 'bold', color: COLORS.textPrimary, marginBottom: SIZES.xs },
+  appSubtitle: { fontSize: SIZES.fontMd, color: COLORS.textSecondary },
+
+  card: {
+    backgroundColor: COLORS.bgCard,
+    borderRadius: SIZES.radiusXl,
+    padding: SIZES.xl,
+    borderWidth: 1,
+    borderColor: COLORS.border,
+  },
+  cardTitle: { fontSize: SIZES.fontXl, fontWeight: 'bold', color: COLORS.textPrimary, marginBottom: SIZES.xs, textAlign: 'center' },
+  cardSubtitle: { fontSize: SIZES.fontSm, color: COLORS.textSecondary, marginBottom: SIZES.lg, textAlign: 'center' },
+
+  googleBtn: {
+    backgroundColor: '#4285F4',
+    borderRadius: SIZES.radiusMd,
+    paddingVertical: SIZES.md,
+    marginBottom: SIZES.md,
+  },
+  btnContent: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: SIZES.sm },
+  googleBtnText: { color: '#fff', fontSize: SIZES.fontMd, fontWeight: '600' },
+
+  divider: { flexDirection: 'row', alignItems: 'center', marginVertical: SIZES.md },
+  dividerLine: { flex: 1, height: 1, backgroundColor: COLORS.border },
+  dividerText: { color: COLORS.textMuted, marginHorizontal: SIZES.sm, fontSize: SIZES.fontSm },
+
+  phoneBtn: {
+    backgroundColor: 'transparent',
+    borderRadius: SIZES.radiusMd,
+    paddingVertical: SIZES.md,
+    borderWidth: 1,
+    borderColor: COLORS.primary,
+  },
+  phoneBtnText: { color: COLORS.primary, fontSize: SIZES.fontMd, fontWeight: '600' },
+
+  termsText: { fontSize: SIZES.fontXs, color: COLORS.textMuted, textAlign: 'center', marginTop: SIZES.lg, lineHeight: 18 },
+  termsLink: { color: COLORS.primary },
+
+  backBtn: { flexDirection: 'row', alignItems: 'center', gap: SIZES.xs, marginBottom: SIZES.lg },
+  backText: { color: COLORS.textSecondary, fontSize: SIZES.fontSm },
+
+  input: {
+    backgroundColor: COLORS.bgInput,
+    borderRadius: SIZES.radiusMd,
+    paddingHorizontal: SIZES.md,
+    paddingVertical: SIZES.md,
+    color: COLORS.textPrimary,
+    fontSize: SIZES.fontMd,
+    borderWidth: 1,
+    borderColor: COLORS.border,
+    marginBottom: SIZES.lg,
+  },
+  otpInput: { fontSize: SIZES.fontXxl, letterSpacing: 8, textAlign: 'center' },
+
+  submitBtn: {
+    backgroundColor: COLORS.primary,
+    borderRadius: SIZES.radiusMd,
+    paddingVertical: SIZES.md,
+    alignItems: 'center',
+  },
+  submitBtnDisabled: { opacity: 0.6 },
+  submitBtnText: { color: '#fff', fontSize: SIZES.fontMd, fontWeight: '600' },
+
+  resendBtn: { alignItems: 'center', marginTop: SIZES.md },
+  resendText: { color: COLORS.primary, fontSize: SIZES.fontSm },
+});
