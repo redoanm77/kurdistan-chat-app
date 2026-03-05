@@ -7,7 +7,7 @@
   "client": [
     {
       "client_info": {
-        "mobilesdk_app_id": "1:814756551942:android:cf9150b055e14c3de61287",
+        "mobilesdk_app_id": "1:814756551942:android:b4debfb4fcb2d1bee61287",
         "android_client_info": {
           "package_name": "com.kurdichat.app"
         }
@@ -21,7 +21,7 @@
           }
         },
         {
-          "client_id": "814756551942-web.apps.googleusercontent.com",
+          "client_id": "814756551942-hufr4kuerljf88jdq73801p5cfodtrhf.apps.googleusercontent.com",
           "client_type": 3
         }
       ],
@@ -34,7 +34,7 @@
         "appinvite_service": {
           "other_platform_oauth_client": [
             {
-              "client_id": "814756551942-web.apps.googleusercontent.com",
+              "client_id": "814756551942-hufr4kuerljf88jdq73801p5cfodtrhf.apps.googleusercontent.com",
               "client_type": 3
             }
           ]
