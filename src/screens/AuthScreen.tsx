@@ -2,17 +2,23 @@ import React, { useState } from 'react';
 import {
   View, Text, StyleSheet, TouchableOpacity, TextInput,
   KeyboardAvoidingView, Platform, ScrollView, ActivityIndicator,
-  Alert, Image
+  Alert, Image, Linking
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import auth from '@react-native-firebase/auth';
-import { GoogleSignin } from '@react-native-google-signin/google-signin';
+import { GoogleSignin, statusCodes } from '@react-native-google-signin/google-signin';
 import { COLORS, SIZES } from '../constants/theme';
 
 GoogleSignin.configure({
   webClientId: '814756551942-hufr4kuerljf88jdq73801p5cfodtrhf.apps.googleusercontent.com',
+  offlineAccess: true,
+  forceCodeForRefreshToken: true,
 });
+
+// روابط الخصوصية وشروط الاستخدام
+const PRIVACY_URL = 'https://kurdichat.vip/privacy';
+const TERMS_URL = 'https://kurdichat.vip/terms';
 
 type Step = 'main' | 'phone' | 'otp';
 
@@ -27,30 +33,55 @@ export default function AuthScreen() {
     try {
       setLoading(true);
       await GoogleSignin.hasPlayServices({ showPlayServicesUpdateDialog: true });
+      await GoogleSignin.signOut(); // تسجيل خروج سابق لضمان اختيار حساب جديد
       const { data } = await GoogleSignin.signIn();
-      const googleCredential = auth.GoogleAuthProvider.credential(data!.idToken);
+      if (!data?.idToken) {
+        throw new Error('No ID token received');
+      }
+      const googleCredential = auth.GoogleAuthProvider.credential(data.idToken);
       await auth().signInWithCredential(googleCredential);
     } catch (error: any) {
-      Alert.alert('خطأ', 'فشل تسجيل الدخول بـ Google. حاول مرة أخرى.');
-      console.error(error);
+      if (error.code === statusCodes.SIGN_IN_CANCELLED) {
+        // المستخدم ألغى تسجيل الدخول
+      } else if (error.code === statusCodes.IN_PROGRESS) {
+        Alert.alert('تنبيه', 'تسجيل الدخول جارٍ بالفعل، يرجى الانتظار.');
+      } else if (error.code === statusCodes.PLAY_SERVICES_NOT_AVAILABLE) {
+        Alert.alert('خطأ', 'خدمات Google Play غير متوفرة على هذا الجهاز.');
+      } else {
+        Alert.alert('خطأ', 'فشل تسجيل الدخول بـ Google. حاول مرة أخرى.');
+        console.error('Google Sign-In error:', error);
+      }
     } finally {
       setLoading(false);
     }
   };
 
   const handlePhoneSubmit = async () => {
-    if (!phone || phone.length < 8) {
+    const trimmedPhone = phone.trim();
+    if (!trimmedPhone || trimmedPhone.length < 8) {
       Alert.alert('خطأ', 'أدخل رقم هاتف صحيح مع رمز الدولة (مثال: +9647xxxxxxxx)');
+      return;
+    }
+    if (!trimmedPhone.startsWith('+')) {
+      Alert.alert('خطأ', 'يجب أن يبدأ رقم الهاتف بـ + ورمز الدولة (مثال: +9647xxxxxxxx)');
       return;
     }
     try {
       setLoading(true);
-      const confirmation = await auth().signInWithPhoneNumber(phone);
+      const confirmation = await auth().signInWithPhoneNumber(trimmedPhone);
       setConfirm(confirmation);
       setStep('otp');
     } catch (error: any) {
-      Alert.alert('خطأ', 'فشل إرسال رمز التحقق. تأكد من رقم الهاتف.');
-      console.error(error);
+      console.error('Phone auth error:', error);
+      if (error.code === 'auth/invalid-phone-number') {
+        Alert.alert('خطأ', 'رقم الهاتف غير صحيح. تأكد من إدخال رمز الدولة.');
+      } else if (error.code === 'auth/too-many-requests') {
+        Alert.alert('خطأ', 'تم إرسال طلبات كثيرة. حاول لاحقاً.');
+      } else if (error.code === 'auth/quota-exceeded') {
+        Alert.alert('خطأ', 'تم تجاوز الحد المسموح. حاول لاحقاً.');
+      } else {
+        Alert.alert('خطأ', 'فشل إرسال رمز التحقق. تأكد من رقم الهاتف ورمز الدولة.');
+      }
     } finally {
       setLoading(false);
     }
@@ -65,37 +96,62 @@ export default function AuthScreen() {
       setLoading(true);
       await confirm.confirm(otp);
     } catch (error: any) {
-      Alert.alert('خطأ', 'رمز التحقق غير صحيح. حاول مرة أخرى.');
-      console.error(error);
+      console.error('OTP error:', error);
+      if (error.code === 'auth/invalid-verification-code') {
+        Alert.alert('خطأ', 'رمز التحقق غير صحيح. حاول مرة أخرى.');
+      } else if (error.code === 'auth/code-expired') {
+        Alert.alert('خطأ', 'انتهت صلاحية الرمز. اطلب رمزاً جديداً.');
+      } else {
+        Alert.alert('خطأ', 'فشل التحقق. حاول مرة أخرى.');
+      }
     } finally {
       setLoading(false);
     }
+  };
+
+  const openPrivacy = () => {
+    Linking.openURL(PRIVACY_URL).catch(() => {
+      Alert.alert('خطأ', 'تعذر فتح الرابط');
+    });
+  };
+
+  const openTerms = () => {
+    Linking.openURL(TERMS_URL).catch(() => {
+      Alert.alert('خطأ', 'تعذر فتح الرابط');
+    });
   };
 
   return (
     <LinearGradient colors={['#0a0a1a', '#12122a', '#0a0a1a']} style={styles.container}>
       <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={styles.flex}>
         <ScrollView contentContainerStyle={styles.scroll} keyboardShouldPersistTaps="handled">
-
           {/* Logo */}
-          <View style={styles.logoContainer}>
-            <View style={styles.logoCircle}>
-              <Text style={styles.logoText}>K</Text>
+          {step === 'main' && (
+            <View style={styles.logoContainer}>
+              <View style={styles.logoCircle}>
+                <Text style={styles.logoText}>K</Text>
+              </View>
+              <Text style={styles.appName}>Kurdistan Chat</Text>
+              <Text style={styles.appSubtitle}>تواصل مع الأعضاء من حولك</Text>
             </View>
-            <Text style={styles.appName}>Kurdistan Chat</Text>
-            <Text style={styles.appSubtitle}>تواصل مع الأعضاء من حولك</Text>
-          </View>
+          )}
 
           {/* Main Step */}
           {step === 'main' && (
             <View style={styles.card}>
-              <Text style={styles.cardTitle}>سجّل دخولك</Text>
+              <Text style={styles.cardTitle}>تسجيل الدخول</Text>
+              <Text style={styles.cardSubtitle}>اختر طريقة تسجيل الدخول</Text>
 
-              {/* Google Button */}
               <TouchableOpacity style={styles.googleBtn} onPress={handleGoogleSignIn} disabled={loading}>
                 <View style={styles.btnContent}>
-                  <Ionicons name="logo-google" size={22} color="#fff" />
-                  <Text style={styles.googleBtnText}>متابعة بـ Google</Text>
+                  {loading ? (
+                    <ActivityIndicator color="#fff" size="small" />
+                  ) : (
+                    <>
+                      <Ionicons name="logo-google" size={22} color="#fff" />
+                      <Text style={styles.googleBtnText}>متابعة بـ Google</Text>
+                    </>
+                  )}
                 </View>
               </TouchableOpacity>
 
@@ -105,7 +161,6 @@ export default function AuthScreen() {
                 <View style={styles.dividerLine} />
               </View>
 
-              {/* Phone Button */}
               <TouchableOpacity style={styles.phoneBtn} onPress={() => setStep('phone')} disabled={loading}>
                 <View style={styles.btnContent}>
                   <Ionicons name="phone-portrait-outline" size={22} color={COLORS.primary} />
@@ -115,9 +170,9 @@ export default function AuthScreen() {
 
               <Text style={styles.termsText}>
                 بالمتابعة، أنت توافق على{' '}
-                <Text style={styles.termsLink}>شروط الاستخدام</Text>
+                <Text style={styles.termsLink} onPress={openTerms}>شروط الاستخدام</Text>
                 {' '}و{' '}
-                <Text style={styles.termsLink}>سياسة الخصوصية</Text>
+                <Text style={styles.termsLink} onPress={openPrivacy}>سياسة الخصوصية</Text>
               </Text>
             </View>
           )}
@@ -129,10 +184,8 @@ export default function AuthScreen() {
                 <Ionicons name="arrow-back" size={20} color={COLORS.textSecondary} />
                 <Text style={styles.backText}>رجوع</Text>
               </TouchableOpacity>
-
               <Text style={styles.cardTitle}>رقم الهاتف</Text>
-              <Text style={styles.cardSubtitle}>سنرسل لك رمز تحقق</Text>
-
+              <Text style={styles.cardSubtitle}>أدخل رقمك مع رمز الدولة</Text>
               <TextInput
                 style={styles.input}
                 placeholder="+9647xxxxxxxx"
@@ -140,10 +193,9 @@ export default function AuthScreen() {
                 value={phone}
                 onChangeText={setPhone}
                 keyboardType="phone-pad"
-                textAlign="left"
                 autoFocus
+                textContentType="telephoneNumber"
               />
-
               <TouchableOpacity
                 style={[styles.submitBtn, loading && styles.submitBtnDisabled]}
                 onPress={handlePhoneSubmit}
@@ -165,10 +217,8 @@ export default function AuthScreen() {
                 <Ionicons name="arrow-back" size={20} color={COLORS.textSecondary} />
                 <Text style={styles.backText}>رجوع</Text>
               </TouchableOpacity>
-
               <Text style={styles.cardTitle}>رمز التحقق</Text>
               <Text style={styles.cardSubtitle}>أدخل الرمز المرسل إلى {phone}</Text>
-
               <TextInput
                 style={[styles.input, styles.otpInput]}
                 placeholder="000000"
@@ -180,7 +230,6 @@ export default function AuthScreen() {
                 textAlign="center"
                 autoFocus
               />
-
               <TouchableOpacity
                 style={[styles.submitBtn, loading && styles.submitBtnDisabled]}
                 onPress={handleOtpConfirm}
@@ -192,13 +241,11 @@ export default function AuthScreen() {
                   <Text style={styles.submitBtnText}>تأكيد الرمز</Text>
                 )}
               </TouchableOpacity>
-
               <TouchableOpacity onPress={() => setStep('phone')} style={styles.resendBtn}>
                 <Text style={styles.resendText}>إعادة إرسال الرمز</Text>
               </TouchableOpacity>
             </View>
           )}
-
         </ScrollView>
       </KeyboardAvoidingView>
     </LinearGradient>
@@ -209,7 +256,6 @@ const styles = StyleSheet.create({
   container: { flex: 1 },
   flex: { flex: 1 },
   scroll: { flexGrow: 1, justifyContent: 'center', padding: SIZES.lg },
-
   logoContainer: { alignItems: 'center', marginBottom: SIZES.xxl },
   logoCircle: {
     width: 90, height: 90, borderRadius: 45,
@@ -222,7 +268,6 @@ const styles = StyleSheet.create({
   logoText: { fontSize: 42, fontWeight: 'bold', color: '#fff' },
   appName: { fontSize: SIZES.fontXxl, fontWeight: 'bold', color: COLORS.textPrimary, marginBottom: SIZES.xs },
   appSubtitle: { fontSize: SIZES.fontMd, color: COLORS.textSecondary },
-
   card: {
     backgroundColor: COLORS.bgCard,
     borderRadius: SIZES.radiusXl,
@@ -232,7 +277,6 @@ const styles = StyleSheet.create({
   },
   cardTitle: { fontSize: SIZES.fontXl, fontWeight: 'bold', color: COLORS.textPrimary, marginBottom: SIZES.xs, textAlign: 'center' },
   cardSubtitle: { fontSize: SIZES.fontSm, color: COLORS.textSecondary, marginBottom: SIZES.lg, textAlign: 'center' },
-
   googleBtn: {
     backgroundColor: '#4285F4',
     borderRadius: SIZES.radiusMd,
@@ -241,11 +285,9 @@ const styles = StyleSheet.create({
   },
   btnContent: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: SIZES.sm },
   googleBtnText: { color: '#fff', fontSize: SIZES.fontMd, fontWeight: '600' },
-
   divider: { flexDirection: 'row', alignItems: 'center', marginVertical: SIZES.md },
   dividerLine: { flex: 1, height: 1, backgroundColor: COLORS.border },
   dividerText: { color: COLORS.textMuted, marginHorizontal: SIZES.sm, fontSize: SIZES.fontSm },
-
   phoneBtn: {
     backgroundColor: 'transparent',
     borderRadius: SIZES.radiusMd,
@@ -254,13 +296,10 @@ const styles = StyleSheet.create({
     borderColor: COLORS.primary,
   },
   phoneBtnText: { color: COLORS.primary, fontSize: SIZES.fontMd, fontWeight: '600' },
-
   termsText: { fontSize: SIZES.fontXs, color: COLORS.textMuted, textAlign: 'center', marginTop: SIZES.lg, lineHeight: 18 },
-  termsLink: { color: COLORS.primary },
-
+  termsLink: { color: COLORS.primary, textDecorationLine: 'underline' },
   backBtn: { flexDirection: 'row', alignItems: 'center', gap: SIZES.xs, marginBottom: SIZES.lg },
   backText: { color: COLORS.textSecondary, fontSize: SIZES.fontSm },
-
   input: {
     backgroundColor: COLORS.bgInput,
     borderRadius: SIZES.radiusMd,
@@ -273,7 +312,6 @@ const styles = StyleSheet.create({
     marginBottom: SIZES.lg,
   },
   otpInput: { fontSize: SIZES.fontXxl, letterSpacing: 8, textAlign: 'center' },
-
   submitBtn: {
     backgroundColor: COLORS.primary,
     borderRadius: SIZES.radiusMd,
@@ -282,7 +320,6 @@ const styles = StyleSheet.create({
   },
   submitBtnDisabled: { opacity: 0.6 },
   submitBtnText: { color: '#fff', fontSize: SIZES.fontMd, fontWeight: '600' },
-
   resendBtn: { alignItems: 'center', marginTop: SIZES.md },
   resendText: { color: COLORS.primary, fontSize: SIZES.fontSm },
 });
