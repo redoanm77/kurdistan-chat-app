@@ -3,35 +3,10 @@ on:
   push:
     branches: [ main, master ]
   workflow_dispatch:
-    inputs:
-      build_apk:
-        description: 'Build new APK (takes 20 min)'
-        required: false
-        default: 'false'
-        type: boolean
 jobs:
-  ota-update:
-    name: OTA Update (seconds)
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: '18'
-      - name: Install dependencies
-        run: npm install --legacy-peer-deps
-      - name: Install EAS CLI
-        run: npm install -g eas-cli
-      - name: Publish OTA Update
-        env:
-          EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
-        run: eas update --branch preview --message "OTA Update" --non-interactive
   build:
-    name: Build APK (Full Build)
+    name: Build APK
     runs-on: ubuntu-latest
-    if: ${{ github.event.inputs.build_apk == 'true' || contains(github.event.head_commit.message, '[build-apk]') }}
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
