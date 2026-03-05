@@ -121,6 +121,9 @@ export type RootStackParamList = {
   Settings: undefined;
   MessagesScreen: undefined;
   StoriesScreen: undefined;
+  AboutUs: undefined;
+  ContactUs: undefined;
+  AdminPanel: undefined;
 };
 
 export type MainTabParamList = {
@@ -129,4 +132,5 @@ export type MainTabParamList = {
   Messages: undefined;
   Notifications: undefined;
   Profile: undefined;
+  More: undefined;
 };
